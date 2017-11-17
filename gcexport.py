@@ -33,6 +33,7 @@ import zipfile
 script_version = '1.0.0'
 current_date = datetime.now().strftime('%Y-%m-%d')
 activities_directory = './' + current_date + '_garmin_connect_export'
+datalog_file = activities_directory + "/datalog.txt"
 
 parser = argparse.ArgumentParser()
 
@@ -50,6 +51,9 @@ parser.add_argument('-f', '--format', nargs='?', choices=['gpx', 'tcx', 'origina
 
 parser.add_argument('-d', '--directory', nargs='?', default=activities_directory,
 	help="the directory to export to (default: './YYYY-MM-DD_garmin_connect_export')")
+
+parser.add_argument('-l', '--datalog', nargs='?', default=datalog_file,
+        help="the datalog file (default: './YYYY-MM-DD_garmin_connect_export/datalog.txt')")
 
 parser.add_argument('-u', '--unzip',
 	help="if downloading ZIP files (format: 'original'), unzip the file and removes the ZIP file",
@@ -189,6 +193,10 @@ print "Finish legacy session"
 if not isdir(args.directory):
 	mkdir(args.directory)
 
+if not isfile(args.datalog):
+	file = open(args.datalog, "w")
+	file.close()
+
 csv_filename = args.directory + '/activities.csv'
 csv_existed = isfile(csv_filename)
 
@@ -269,6 +277,7 @@ else:
 	total_to_download = int(args.count)
 total_downloaded = 0
 
+
 # This while loop will download data from the server in multiple chunks, if necessary.
 while total_downloaded < total_to_download:
 	# Maximum of 100... 400 return status if over 100.  So download 100 or whatever remains if less than 100.
@@ -337,6 +346,9 @@ while total_downloaded < total_to_download:
 		else:
 			raise Exception('Unrecognized format.')
 
+		if data_filename in open(args.datalog).read():
+			print '\tData file already exists (in datalog); skipping...'
+                        continue
 		if isfile(data_filename):
 			print '\tData file already exists; skipping...'
 			continue
@@ -442,6 +454,11 @@ while total_downloaded < total_to_download:
 #		csv_record += empty_record if 'activityType' not in a['activity'] else '"' + a['activity']['activityType']['parent']['display'].replace('"', '""') + '",'
 
 		csv_file.write(csv_record.encode('utf8'))
+
+		file = open(args.datalog,"a")
+		file.write(data_filename)
+		file.write("\n")
+		file.close()
 
 		if args.format == 'gpx':
 			# Validate GPX data. If we have an activity without GPS data (e.g., running on a treadmill),
